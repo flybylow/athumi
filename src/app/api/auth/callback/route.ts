@@ -11,6 +11,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { webId, accessToken, refreshToken, expiresIn } = body;
 
+    console.log("Callback received:", {
+      webId,
+      hasAccessToken: !!accessToken,
+      accessTokenLength: accessToken?.length,
+      hasRefreshToken: !!refreshToken,
+      expiresIn,
+    });
+
     if (!webId) {
       return NextResponse.json(
         { error: "Missing webId in callback data" },
@@ -30,6 +38,8 @@ export async function POST(request: NextRequest) {
       refreshToken,
       expiresAt,
     });
+
+    console.log("Session created successfully");
 
     return NextResponse.json({ success: true, webId });
   } catch (error) {

@@ -28,12 +28,13 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        // Get session info from browser session (includes tokens)
-        const session = window.sessionStorage.getItem(
-          "solid-client-authn:session"
-        );
+        // Note: The Solid browser SDK stores tokens internally and doesn't expose them
+        // in sessionStorage. For now, we'll store just the WebID.
+        // TODO: For production, we'd need a different approach to extract tokens
+        // or use client-side Pod operations with the browser session's authenticated fetch.
         
         // Send session data to API to store in cookie
+        // Only storing WebID since tokens aren't accessible from browser SDK
         const response = await fetch("/api/auth/callback", {
           method: "POST",
           headers: {
@@ -41,8 +42,9 @@ export default function AuthCallbackPage() {
           },
           body: JSON.stringify({
             webId,
-            // Note: In a production setup, you'd extract and send tokens
-            // For now, we'll rely on WebID for session validation
+            // Tokens are managed internally by the browser SDK and not accessible
+            // This means server-side Pod operations won't work without tokens
+            // For a POC, we document this limitation
             expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
           }),
         });

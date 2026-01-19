@@ -1,6 +1,8 @@
 "use client";
 
 import { AuthButton } from "@/components/AuthButton";
+import { ProductForm } from "@/components/ProductForm";
+import { ProductList } from "@/components/ProductList";
 import { useSolidSession } from "@/hooks/useSolidSession";
 
 export default function Home() {
@@ -26,25 +28,35 @@ export default function Home() {
         </div>
 
         {session.isLoggedIn && (
-          <div className="w-full p-6 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-950">
-            <h2 className="text-xl font-semibold text-green-900 dark:text-green-100 mb-4">
-              Session Status
-            </h2>
-            <div className="space-y-2">
-              <p className="text-sm text-green-800 dark:text-green-200">
-                <span className="font-medium">Status:</span>{" "}
-                <span className="text-green-600 dark:text-green-400">
-                  Authenticated
-                </span>
-              </p>
-              <p className="text-sm text-green-800 dark:text-green-200 break-all">
-                <span className="font-medium">WebID:</span>{" "}
-                <span className="text-green-600 dark:text-green-400">
-                  {session.webId}
-                </span>
-              </p>
+          <>
+            <div className="w-full p-6 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-950 mb-8">
+              <h2 className="text-xl font-semibold text-green-900 dark:text-green-100 mb-4">
+                Session Status
+              </h2>
+              <div className="space-y-2">
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  <span className="font-medium">Status:</span>{" "}
+                  <span className="text-green-600 dark:text-green-400">
+                    Authenticated
+                  </span>
+                </p>
+                <p className="text-sm text-green-800 dark:text-green-200 break-all">
+                  <span className="font-medium">WebID:</span>{" "}
+                  <span className="text-green-600 dark:text-green-400">
+                    {session.webId}
+                  </span>
+                </p>
+              </div>
             </div>
-          </div>
+
+            <div className="w-full mb-8">
+              <ProductForm />
+            </div>
+
+            <div className="w-full">
+              <ProductList />
+            </div>
+          </>
         )}
 
         {!session.isLoggedIn && !isLoading && (

@@ -61,6 +61,32 @@ export async function clearSession(): Promise<void> {
 }
 
 /**
+ * Create an authenticated fetch function using stored access token
+ * This creates a fetch wrapper that adds Authorization header
+ */
+function createAuthenticatedFetch(
+  accessToken: string,
+  oidcIssuer: string
+): typeof fetch {
+  return async (input: RequestInfo | URL, init?: RequestInit) => {
+    const headers = new Headers(init?.headers);
+    
+    // Add Authorization header with Bearer token
+    if (accessToken) {
+      headers.set("Authorization", `Bearer ${accessToken}`);
+    }
+    
+    // Add DPoP header if needed (for some Solid servers)
+    // For POC with Community Solid Server, Bearer token should work
+    
+    return fetch(input, {
+      ...init,
+      headers,
+    });
+  };
+}
+
+/**
  * Create a Solid Node.js Session instance from stored session data
  * This can be used in API routes for Pod operations
  */
@@ -69,16 +95,25 @@ export async function createSolidNodeSession(
 ): Promise<Session> {
   const session = new Session();
 
-  // If we have tokens stored, restore the session
+  // Set session info
+  session.info = {
+    isLoggedIn: true,
+    webId: sessionData.webId,
+    sessionId: sessionData.webId,
+  };
+
+  // If we have an access token, create an authenticated fetch
   if (sessionData.accessToken) {
-    // Note: The actual token restoration depends on Solid SDK's session handling
-    // For now, we'll need to re-authenticate or use the stored WebID
-    // In a production setup, you'd store and restore the full session info
-    session.info = {
-      isLoggedIn: true,
-      webId: sessionData.webId,
-      sessionId: sessionData.webId, // Simplified
-    };
+    const oidcIssuer = process.env.SOLID_IDP || process.env.NEXT_PUBLIC_SOLID_IDP || "http://localhost:3000";
+    console.log("Creating authenticated fetch with token");
+    session.fetch = createAuthenticatedFetch(
+      sessionData.accessToken,
+      oidcIssuer
+    ) as any; // Type assertion needed for SDK compatibility
+  } else {
+    // Fallback: use regular fetch (will fail for protected resources)
+    console.warn("No access token found - using unauthenticated fetch (this will fail for Pod operations)");
+    session.fetch = fetch;
   }
 
   return session;
@@ -92,8 +127,16 @@ export async function getSolidNodeSession(): Promise<Session | null> {
   const sessionData = await getServerSession();
   
   if (!sessionData) {
+    console.log("No session data found");
     return null;
   }
+
+  console.log("Session data found:", {
+    webId: sessionData.webId,
+    hasAccessToken: !!sessionData.accessToken,
+    accessTokenLength: sessionData.accessToken?.length,
+    expiresAt: new Date(sessionData.expiresAt).toISOString(),
+  });
 
   return createSolidNodeSession(sessionData);
 }
