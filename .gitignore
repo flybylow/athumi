@@ -32,6 +32,13 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
+
+# Community Solid Server data
+/data
+
+# Documentation (local notes, never commit)
+/docs
 
 # vercel
 .vercel
