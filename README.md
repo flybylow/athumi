@@ -151,21 +151,8 @@ athumi/
 │       │   └── session.ts     # Cookie encryption
 │       └── schemas/           # Data schemas
 │           └── product-ownership.ts  # Product schema
-├── docs/                      # Documentation
-│   ├── authentication-flow.md        # Phase 2 learnings
-│   ├── phase-3-product-ownership.md  # Phase 3 implementation
-│   ├── current-state.md              # Project status
-│   └── athumi-pod-poc-reference.md   # Original POC spec
 └── data/                      # CSS data (gitignored)
 ```
-
-## Documentation
-
-Comprehensive documentation is available in the `docs/` folder:
-
-- **[Authentication Flow](docs/authentication-flow.md)**: Learnings from Phase 2, including OIDC flow details and common issues
-- **[Phase 3: Product Ownership](docs/phase-3-product-ownership.md)**: Implementation details for product credential management
-- **[Current State](docs/current-state.md)**: Project status, capabilities, and known limitations
 
 ## Development
 
@@ -266,7 +253,6 @@ Products are stored as RDF Things in the user's Pod:
 
 ### Authorization screen every login
 - This is expected behavior (dynamic client registration)
-- See [authentication-flow.md](docs/authentication-flow.md) for details
 
 ## Future Improvements
 
