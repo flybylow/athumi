@@ -39,16 +39,12 @@ export function AuthButton() {
         method: "POST",
       });
       
-      // Refresh session state
-      await refresh();
-      
-      // Redirect to home
-      router.push("/");
+      // Full page refresh to clear all state
+      window.location.href = "/";
     } catch (error) {
       console.error("Logout error:", error);
-      alert("Logout failed. Please try again.");
-    } finally {
       setIsProcessing(false);
+      alert("Logout failed. Please try again.");
     }
   };
 
@@ -65,18 +61,12 @@ export function AuthButton() {
 
   if (session.isLoggedIn && session.webId) {
     return (
-      <div className="flex items-center gap-4">
-        <div className="text-sm text-gray-600">
-          <span className="font-medium">Logged in as:</span>
-          <span className="ml-2 text-gray-800 break-all">{session.webId}</span>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
-        >
-          Logout
-        </button>
-      </div>
+      <button
+        onClick={handleLogout}
+        className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+      >
+        Logout
+      </button>
     );
   }
 

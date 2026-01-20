@@ -1,18 +1,21 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { useProducts } from "@/hooks/useProducts";
-import { writeProductOwnershipClient } from "@/lib/solid/pod.client";
+import type { ProductOwnership } from "@/lib/schemas/product-ownership";
+import { writeProductOwnershipClient, readProductOwnershipClient } from "@/lib/solid/pod.client";
+import { showToast } from "./Toast";
 
 /**
  * Product Form Component
  * Form to add new product ownership credentials
  */
-export function ProductForm() {
-  const { refresh } = useProducts();
+interface ProductFormProps {
+  onProductAdded?: (product: ProductOwnership) => string;
+}
+
+export function ProductForm({ onProductAdded }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     gtin: "",
     name: "",
@@ -21,17 +24,19 @@ export function ProductForm() {
     dppUrl: "",
   });
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const submitForm = async (data: typeof formData) => {
     setIsSubmitting(true);
     setError(null);
-    setSuccess(null);
 
     try {
       // Use client-side Pod operation with browser session's authenticated fetch
-      const credentialUrl = await writeProductOwnershipClient(formData);
+      const credentialUrl = await writeProductOwnershipClient(data);
       
-      setSuccess(`Product ownership credential added successfully! URL: ${credentialUrl}`);
+      // Read the product back to get the full ProductOwnership object
+      const product = await readProductOwnershipClient(credentialUrl);
+      
+      // Show success toast notification
+      showToast("Product ownership credential added successfully!", "success");
       
       // Reset form
       setFormData({
@@ -42,14 +47,21 @@ export function ProductForm() {
         dppUrl: "",
       });
 
-      // Refresh products list
-      await refresh();
+      // Add product directly to the list (no refresh needed)
+      if (onProductAdded) {
+        return onProductAdded(product);
+      }
     } catch (err) {
       console.error("Add product error:", err);
       setError(err instanceof Error ? err.message : "Failed to add product");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await submitForm(formData);
   };
 
   const handleChange = (
@@ -59,47 +71,86 @@ export function ProductForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAutoFill = () => {
+  const handleRandomFill = () => {
     setError(null);
-    setSuccess(null);
+
+    // Sample product names
+    const productNames = [
+      "Organic Coffee Beans Dark Roast",
+      "Premium Chocolate Bar 85% Cocoa",
+      "Handmade Artisan Bread",
+      "Natural Honey 500g",
+      "Fresh Olive Oil Extra Virgin",
+      "Wild Salmon Fillet",
+      "Organic Green Tea",
+      "Artisan Cheese Aged 12 Months",
+      "Fresh Mango from India",
+      "Organic Quinoa 1kg",
+      "Handcrafted Soap Lavender",
+      "Premium Wine Cabernet Sauvignon",
+      "Organic Almonds Raw",
+      "Fresh Avocados Hass",
+      "Wild Caught Tuna Steak",
+    ];
+
+    // Sample manufacturer names
+    const manufacturers = [
+      { id: "did:web:organico.be", name: "Organico Belgium" },
+      { id: "did:web:artisan.nl", name: "Artisan Netherlands" },
+      { id: "did:web:premium.fr", name: "Premium France" },
+      { id: "did:web:nature.de", name: "Nature Germany" },
+      { id: "did:web:fresh.it", name: "Fresh Italy" },
+      { id: "did:web:organic.es", name: "Organic Spain" },
+      { id: "did:web:wild.eu", name: "Wild Europe" },
+      { id: "did:web:handcraft.uk", name: "Handcraft UK" },
+    ];
+
+    // Generate random 13-digit GTIN (EAN-13 format)
+    const generateGTIN = () => {
+      let gtin = "";
+      for (let i = 0; i < 12; i++) {
+        gtin += Math.floor(Math.random() * 10).toString();
+      }
+      // Calculate check digit (simplified)
+      const checkDigit = Math.floor(Math.random() * 10);
+      return gtin + checkDigit;
+    };
+
+    // Pick random values
+    const randomProductName = productNames[Math.floor(Math.random() * productNames.length)];
+    const randomManufacturer = manufacturers[Math.floor(Math.random() * manufacturers.length)];
+    const randomGTIN = generateGTIN();
+
+    // Fill form with random data
     setFormData({
-      gtin: "9506000140445",
-      name: "cote d or",
-      manufacturerId: "did:web:cotedor",
-      manufacturerName: "cotedor belgium",
-      dppUrl: "https://tabulas.eu/cotedor",
+      gtin: randomGTIN,
+      name: randomProductName,
+      manufacturerId: randomManufacturer.id,
+      manufacturerName: randomManufacturer.name,
+      dppUrl: `https://tabulas.eu/dpp/${randomGTIN}`,
     });
   };
 
   return (
     <div className="w-full p-6 border border-zinc-200 dark:border-zinc-800 rounded-lg">
-      <h2 className="text-xl font-semibold text-black dark:text-zinc-50 mb-4">
-        Add Product Ownership
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-black dark:text-zinc-50">
+          Digital Product Passport
+        </h2>
+        <button
+          type="button"
+          onClick={handleRandomFill}
+          className="px-4 py-2 rounded-md bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 hover:bg-purple-300 dark:hover:bg-purple-700 transition-colors text-sm font-medium"
+        >
+          Random Fill
+        </button>
+      </div>
 
       {error && (
         <div className="mb-4 p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-950">
           <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
         </div>
       )}
-
-      {success && (
-        <div className="mb-4 p-4 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-950">
-          <p className="text-sm text-green-800 dark:text-green-200">
-            {success}
-          </p>
-        </div>
-      )}
-
-      <div className="mb-4">
-        <button
-          type="button"
-          onClick={handleAutoFill}
-          className="px-4 py-2 rounded-md bg-gray-200 dark:bg-zinc-700 text-gray-800 dark:text-zinc-200 hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors text-sm font-medium"
-        >
-          Auto-fill Sample Data
-        </button>
-      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -202,7 +253,7 @@ export function ProductForm() {
           disabled={isSubmitting}
           className="w-full px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Adding..." : "Add Product Ownership"}
+          {isSubmitting ? "Adding..." : "Add to Personal Vault"}
         </button>
       </form>
     </div>

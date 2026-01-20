@@ -15,6 +15,7 @@ import {
   setUrl,
   setDatetime,
   setStringNoLocale,
+  deleteSolidDataset,
 } from "@inrupt/solid-client";
 import { RDF, SCHEMA_INRUPT } from "@inrupt/vocab-common-rdf";
 import { getDefaultSession } from "@inrupt/solid-client-authn-browser";
@@ -100,6 +101,14 @@ export async function writeProductOwnershipClient(
   try {
     dataset = await getSolidDataset(credentialUrl, { fetch: session.fetch });
   } catch (e) {
+    // 404 is expected for new products - resource doesn't exist yet, create new dataset
+    // Other errors are unexpected and should be logged
+    const is404 = (e as Error).message.includes("404") || 
+                 (e as any).response?.status === 404 ||
+                 (e as any).status === 404;
+    if (!is404) {
+      console.error("Unexpected error checking if product exists:", e);
+    }
     dataset = createSolidDataset();
   }
 
@@ -187,7 +196,16 @@ export async function listOwnedProductsClient(): Promise<ProductOwnership[]> {
         const product = await readProductOwnershipClient(resourceUrl);
         products.push(product);
       } catch (error) {
-        console.error(`Failed to read product at ${resourceUrl}:`, error);
+        // Skip products that can't be read (may have been deleted)
+        // 404 errors are expected if a product was deleted but still in container listing
+        const is404 = (error as Error).message.includes("404") || 
+                     (error as any).response?.status === 404 ||
+                     (error as any).status === 404;
+        if (is404) {
+          console.log(`Product at ${resourceUrl} not found (likely deleted), skipping`);
+        } else {
+          console.error(`Failed to read product at ${resourceUrl}:`, error);
+        }
       }
     }
 
@@ -197,5 +215,34 @@ export async function listOwnedProductsClient(): Promise<ProductOwnership[]> {
     // If we get any other error, return empty array for graceful degradation
     console.error("Error listing products:", error);
     return [];
+  }
+}
+
+/**
+ * Delete a product ownership credential from the Pod (client-side)
+ */
+export async function deleteProductOwnershipClient(
+  credentialUrl: string
+): Promise<void> {
+  const session = getDefaultSession();
+
+  if (!session.info.isLoggedIn || !session.fetch) {
+    throw new Error("Not authenticated");
+  }
+
+  try {
+    // Delete the resource from the Pod
+    await deleteSolidDataset(credentialUrl, {
+      fetch: session.fetch,
+    });
+
+    console.log("Product ownership credential deleted:", credentialUrl);
+  } catch (error) {
+    console.error("Delete product error:", error);
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Failed to delete product ownership credential"
+    );
   }
 }
